@@ -6,6 +6,7 @@ import json
 import sqlite3
 import uuid
 import requests as http_requests
+import logging
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -18,6 +19,12 @@ app.secret_key = 'fin_intel_secret_2024_x9k2m'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
+
+logging.basicConfig(
+    level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
+    format='%(asctime)s %(levelname)s %(name)s - %(message)s'
+)
+app.logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
 
 # ─────────────────────────────────────────────
 # DATABASE
@@ -38,6 +45,12 @@ def init_db():
             pass
     conn.commit()
     conn.close()
+
+def init_runtime():
+    os.makedirs('uploads', exist_ok=True)
+    os.makedirs('sessions', exist_ok=True)
+    init_db()
+    app.logger.info('Runtime initialized successfully')
 
 def get_user(username):
     conn = sqlite3.connect('users.db')
@@ -601,6 +614,7 @@ def test_key():
     except ValueError:
         return jsonify({'ok': False, 'msg': 'NO_API_KEY'})
     except Exception as e:
+        app.logger.exception('Error in /api/test_key')
         return jsonify({'ok': False, 'msg': str(e)})
 
 
@@ -671,6 +685,7 @@ def upload():
 
         return jsonify({'ok': True, 'redirect': url_for('statements')})
     except Exception as e:
+        app.logger.exception('Error in /upload')
         return jsonify({'ok': False, 'msg': str(e)})
 
 @app.route('/statements')
@@ -824,13 +839,16 @@ Be extremely specific, use the actual numbers, compare against industry benchmar
                                 yield 'data: {"done":true}\n\n'
                                 break
                         except:
+                            app.logger.warning('Failed parsing Gemini SSE chunk in /ai/stream')
                             pass
         except ValueError as e:
             if 'NO_API_KEY' in str(e):
                 yield f'data: {json.dumps({"error": "NO_API_KEY"})}\n\n'
             else:
+                app.logger.exception('Value error in /ai/stream')
                 yield f'data: {json.dumps({"error": str(e)})}\n\n'
         except Exception as e:
+            app.logger.exception('Unhandled error in /ai/stream')
             yield f'data: {json.dumps({"error": str(e)})}\n\n'
 
     return Response(generate(), mimetype='text/event-stream',
@@ -885,6 +903,7 @@ def chat_send():
             else:
                 text = f"❌ {msg}"
     except Exception as e:
+        app.logger.exception('Error in /chat/send')
         text = f'Connection error: {str(e)}'
 
     history.append({'role':'user','content': msg})
@@ -916,9 +935,14 @@ def api_compare():
         'bs_b':  load_data('balance_sheet_b'),
     })
 
+try:
+    init_runtime()
+except Exception:
+    app.logger.exception('Startup initialization failed')
+    raise
+
 # ─────────────────────────────────────────────
 if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
-    os.makedirs('sessions', exist_ok=True)
-    init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.logger.info('Starting Flask dev server on port %s', port)
+    app.run(debug=True, host='0.0.0.0', port=port)
