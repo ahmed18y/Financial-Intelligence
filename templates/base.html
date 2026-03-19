@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Financial Intelligence{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="wordmark">Financial<br>Intelligence</div>
+    <div class="tagline"><span class="live-dot"></span>Analysis Platform</div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ session.username[0]|upper if session.username else 'U' }}</div>
+    <div class="user-info">
+      <strong>{{ session.username }}</strong>
+      {% if session.role == 'admin' %}<span class="admin-badge">ADMIN</span>
+      {% else %}<span class="analyst-badge">ANALYST</span>{% endif %}
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Overview</div>
+    <a href="{{ url_for('dashboard') }}" {% if request.endpoint=='dashboard' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="{{ url_for('statements') }}" {% if request.endpoint=='statements' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Statements
+    </a>
+    <div class="nav-section">Analysis</div>
+    <a href="{{ url_for('ratios') }}" {% if request.endpoint=='ratios' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Ratio Analysis
+    </a>
+    <a href="{{ url_for('dupont') }}" {% if request.endpoint=='dupont' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><circle cx="6" cy="15" r="2"/><circle cx="18" cy="15" r="2"/><line x1="10.3" y1="10.7" x2="7" y2="13.2"/><line x1="13.7" y1="10.7" x2="17" y2="13.2"/></svg>
+      DuPont Structure
+    </a>
+    <a href="{{ url_for('fcf') }}" {% if request.endpoint=='fcf' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Free Cash Flow
+    </a>
+    <a href="{{ url_for('capital') }}" {% if request.endpoint=='capital' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Capital Metrics
+    </a>
+    <div class="nav-section">Advanced</div>
+    <a href="{{ url_for('compare') }}" {% if request.endpoint in ('compare','compare_results') %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Compare
+    </a>
+    <a href="{{ url_for('ai_page') }}" {% if request.endpoint=='ai_page' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      AI Analysis
+    </a>
+    <a href="{{ url_for('chat') }}" {% if request.endpoint=='chat' %}class="active"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Chat
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="api-key-btn" onclick="document.getElementById('key-modal').classList.add('open')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      Set Gemini API Key
+    </button>
+    <a href="{{ url_for('logout') }}" class="logout-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<main class="main-content">{% block content %}{% endblock %}</main>
+
+<div id="toast"></div>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="key-modal">
+  <div class="modal-box">
+    <div class="modal-title">Gemini API Key</div>
+    <p class="modal-sub">
+      Free tier: 1,500 requests/day. No credit card needed.<br>
+      Get your key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API Key.<br>
+      Key stays in memory only — never saved to disk.
+    </p>
+    <div style="margin-bottom:14px;">
+      <label class="form-label">API KEY</label>
+      <input id="api-key-input" type="password" placeholder="AIza..." class="form-input" style="font-family:var(--mono);font-size:0.8rem;">
+    </div>
+    <div id="key-test-result" style="margin-bottom:12px;font-size:0.78rem;display:none;"></div>
+    <div style="display:flex;gap:9px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('key-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-outline btn-sm" onclick="testKey()">Test Key</button>
+      <button class="btn btn-indigo btn-sm" onclick="saveApiKey()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

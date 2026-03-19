@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Statements — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Financial Statements</h2><p>Income Statement & Balance Sheet — formatted view</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+<div class="tabs" id="stmt-tabs">
+  <button class="tab active" onclick="stmtTab('is')">Income Statement</button>
+  <button class="tab" onclick="stmtTab('bs')">Balance Sheet</button>
+</div>
+
+<!-- IS -->
+<div id="tab-is">
+<div class="card" style="padding:0;">
+  <div class="fin-table-wrap">
+  <table class="data-table">
+    <thead><tr><th style="text-align:left;width:40%;">Item</th><th>Current Year</th><th>Previous Year</th><th>YoY Change</th></tr></thead>
+    <tbody>
+    {% for key, row in ist.items() %}
+    {% set diff = row.current - row.previous %}
+    <tr data-key="{{ key }}" {% if 'total' in key %}class="total-row"{% endif %}>
+      <td>{{ row.label }}</td>
+      <td {% if session.role=='admin' %}contenteditable="true" data-col="current"{% endif %}>{{ '{:,.2f}'.format(row.current) }}</td>
+      <td>{{ '{:,.2f}'.format(row.previous) }}</td>
+      <td style="color:{% if diff>0 %}var(--green){% elif diff<0 %}var(--red){% else %}var(--text3){% endif %};">
+        {{ '+' if diff>0 else '' }}{{ '{:,.2f}'.format(diff) }}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+
+<!-- BS -->
+<div id="tab-bs" style="display:none;">
+<div class="card" style="padding:0;">
+  <div class="fin-table-wrap">
+  <table class="data-table">
+    <thead><tr><th style="text-align:left;width:40%;">Item</th><th>Current Year</th><th>Previous Year</th><th>YoY Change</th></tr></thead>
+    <tbody>
+    {% for key, row in bs.items() %}
+    {% set diff = row.current - row.previous %}
+    <tr data-key="{{ key }}" {% if 'total' in key or 'fixed_assets' in key %}class="total-row"{% endif %}>
+      <td>{{ row.label }}</td>
+      <td {% if session.role=='admin' %}contenteditable="true" data-col="current"{% endif %}>{{ '{:,.2f}'.format(row.current) }}</td>
+      <td>{{ '{:,.2f}'.format(row.previous) }}</td>
+      <td style="color:{% if diff>0 %}var(--green){% elif diff<0 %}var(--red){% else %}var(--text3){% endif %};">
+        {{ '+' if diff>0 else '' }}{{ '{:,.2f}'.format(diff) }}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% if session.role == 'admin' %}
+<div class="alert alert-warn" style="margin-top:12px;">Admin mode — click any value to edit</div>
+{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function stmtTab(t){
+  ['is','bs'].forEach(id=>{const el=document.getElementById('tab-'+id);if(el)el.style.display=id===t?'block':'none'});
+  document.querySelectorAll('#stmt-tabs .tab').forEach((b,i)=>b.classList.toggle('active',i===(t==='is'?0:1)));
+}
+document.querySelectorAll('[contenteditable="true"]').forEach(cell=>{
+  cell.addEventListener('blur',async()=>{
+    const row=cell.closest('tr');
+    const key=row?.dataset?.key;
+    const yr=cell.dataset?.col || 'current';
+    const stmt=document.getElementById('tab-is')?.style.display!=='none'?'income_statement':'balance_sheet';
+    const val=parseFloat(cell.textContent.replace(/,/g,''))||0;
+    if(!key||!yr||!stmt)return;
+    const r=await fetch('/update_cell',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stmt,key,yr,val})});
+    const d=await r.json();
+    toast(d.ok?'Saved ✓':'Error saving',d.ok?'success':'error');
+  });
+});
+</script>
+{% endblock %}

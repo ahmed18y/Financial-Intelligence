@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Compare Companies{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Company Comparison</h2><p>Upload a second company to run side-by-side analysis</p></div>
+</div>
+
+<div class="compare-header" style="margin-bottom:24px;">
+  <div class="card" style="text-align:center;">
+    <div class="form-label" style="margin-bottom:6px;">Company A</div>
+    <div style="font-family:var(--serif);font-size:1.05rem;color:var(--indigo);">{{ company_a }}</div>
+    <span class="badge badge-good" style="margin-top:8px;">Data Loaded</span>
+  </div>
+  <div class="vs-badge">VS</div>
+  <div class="card" style="text-align:center;">
+    <div class="form-label" style="margin-bottom:6px;">Company B</div>
+    {% if has_b %}
+    <div style="font-family:var(--serif);font-size:1.05rem;color:var(--cyan);">{{ company_b }}</div>
+    <span class="badge badge-good" style="margin-top:8px;">Data Loaded</span>
+    {% else %}
+    <div style="font-size:0.85rem;color:var(--text3);">Not uploaded yet</div>
+    <span class="badge badge-bad" style="margin-top:8px;">Upload Required</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if has_b %}
+<div class="alert alert-success" style="margin-bottom:20px;">
+  ✓ Both companies loaded.
+  <a href="{{ url_for('compare_results') }}" class="btn btn-indigo btn-sm" style="margin-left:12px;">View Comparison →</a>
+</div>
+{% endif %}
+
+<div class="card" style="max-width:860px;">
+  <div class="card-title">Upload Company B Statements</div>
+  <form id="upload-form-b" enctype="multipart/form-data">
+    <input type="hidden" name="suffix" value="_b">
+    <div class="form-group" style="margin-bottom:18px;">
+      <label class="form-label">Company B Name</label>
+      <input type="text" name="company" class="form-input" placeholder="e.g. Competitor Corp" value="{{ company_b if has_b else '' }}" style="max-width:300px;">
+    </div>
+    <div class="grid-2" style="margin-bottom:20px;">
+      <div>
+        <div class="form-label" style="margin-bottom:8px;">Income Statement</div>
+        <div class="upload-zone">
+          <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <strong>Income Statement</strong><p>CSV or Excel</p>
+          <input type="file" name="income_statement" accept=".csv,.xlsx,.xls">
+        </div>
+        <div class="progress-wrap" id="prog-is-b">
+          <div class="progress-label"><span>Processing...</span><span class="pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="form-label" style="margin-bottom:8px;">Balance Sheet</div>
+        <div class="upload-zone">
+          <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <strong>Balance Sheet</strong><p>CSV or Excel</p>
+          <input type="file" name="balance_sheet" accept=".csv,.xlsx,.xls">
+        </div>
+        <div class="progress-wrap" id="prog-bs-b">
+          <div class="progress-label"><span>Processing...</span><span class="pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button type="submit" class="btn btn-indigo">Upload Company B</button>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('static',filename='samples/company_b_income.csv') }}" class="btn btn-outline btn-sm" download>↓ Sample IS</a>
+        <a href="{{ url_for('static',filename='samples/company_b_balance.csv') }}" class="btn btn-outline btn-sm" download>↓ Sample BS</a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const formB = document.getElementById('upload-form-b');
+if(formB) {
+  formB.querySelectorAll('.upload-zone').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over')});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();zone.classList.remove('drag-over');
+      const inp=zone.querySelector('input[type=file]');
+      if(e.dataTransfer.files.length&&inp){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;zone.querySelector('strong').textContent=e.dataTransfer.files[0].name;}
+    });
+    const inp=zone.querySelector('input[type=file]');
+    if(inp) inp.addEventListener('change',()=>{if(inp.files[0])zone.querySelector('strong').textContent=inp.files[0].name;});
+  });
+  formB.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=formB.querySelector('button[type=submit]');btn.disabled=true;
+    const pA=document.getElementById('prog-is-b'),pB=document.getElementById('prog-bs-b');
+    function anim(bar){if(!bar)return;bar.classList.add('active');let w=0;const fill=bar.querySelector('.progress-fill'),pct=bar.querySelector('.pct');const iv=setInterval(()=>{w+=Math.random()*14+4;if(w>=92){w=92;clearInterval(iv);}if(fill)fill.style.width=w+'%';if(pct)pct.textContent=Math.round(w)+'%';},80);}
+    anim(pA);setTimeout(()=>anim(pB),280);
+    await new Promise(r=>setTimeout(r,1600));
+    [pA,pB].forEach(bar=>{if(!bar)return;const f=bar.querySelector('.progress-fill'),p=bar.querySelector('.pct');if(f)f.style.width='100%';if(p)p.textContent='100%';});
+    await new Promise(r=>setTimeout(r,300));
+    const fd=new FormData(formB);
+    const res=await fetch('/upload',{method:'POST',body:fd});
+    const d=await res.json();
+    if(d.ok){toast('Company B loaded ✓','success');setTimeout(()=>window.location.href='/compare/results',600);}
+    else{toast(d.msg||'Upload failed','error');btn.disabled=false;}
+  });
+}
+</script>
+{% endblock %}

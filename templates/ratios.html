@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Ratio Analysis — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Ratio Analysis</h2><p>Four-category financial ratio analysis with benchmarks</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+<div class="section-head">Liquidity Ratios</div>
+<div class="ratio-grid" style="margin-bottom:24px;">
+{% for key, r in ratios.liquidity.items() %}
+<div class="ratio-card {{ 'good' if r.good else 'bad' }}">
+  <div class="ratio-label">{{ key.replace('_',' ').title() }}</div>
+  <span class="ratio-value">{{ '{:.3f}'.format(r.value) }}</span>
+  <div class="ratio-formula">{{ r.formula }}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <span class="ratio-bench">Benchmark: {{ r.benchmark }}</span>
+    <span class="badge {{ 'badge-good' if r.good else 'badge-bad' }}">{{ 'Healthy' if r.good else 'Below' }}</span>
+  </div>
+</div>
+{% else %}<div class="alert alert-info">Insufficient data</div>{% endfor %}
+</div>
+<div class="grid-2" style="margin-bottom:28px;">
+  <div class="chart-box"><h4>LIQUIDITY COMPARISON</h4><canvas id="chartLiq"></canvas></div>
+  <div class="card">
+    <div class="card-title">Interpretation Guide</div>
+    <div style="display:flex;flex-direction:column;gap:14px;font-size:0.81rem;">
+      <div><strong style="color:var(--indigo);">Current Ratio ≥ 1.5</strong><br><span style="color:var(--text3);">Can cover short-term obligations comfortably.</span></div>
+      <div><strong style="color:var(--indigo);">Quick Ratio ≥ 1.0</strong><br><span style="color:var(--text3);">Can pay debts without liquidating inventory.</span></div>
+      <div><strong style="color:var(--indigo);">Cash Ratio ≥ 0.5</strong><br><span style="color:var(--text3);">Strong cash reserves relative to liabilities.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-head">Asset Management Ratios</div>
+<div class="ratio-grid" style="margin-bottom:24px;">
+{% for key, r in ratios.asset_management.items() %}
+<div class="ratio-card {{ 'good' if r.good else 'bad' }}">
+  <div class="ratio-label">{{ key.replace('_',' ').title() }}</div>
+  <span class="ratio-value">{{ '{:.3f}'.format(r.value) }}×</span>
+  <div class="ratio-formula">{{ r.formula }}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <span class="ratio-bench">Benchmark: {{ r.benchmark }}</span>
+    <span class="badge {{ 'badge-good' if r.good else 'badge-bad' }}">{{ 'Efficient' if r.good else 'Below' }}</span>
+  </div>
+</div>
+{% else %}<div class="alert alert-info">Insufficient data</div>{% endfor %}
+</div>
+<div class="chart-box" style="margin-bottom:28px;"><h4>TURNOVER RATES</h4><canvas id="chartAM"></canvas></div>
+
+<div class="section-head">Debt Management Ratios</div>
+<div class="ratio-grid" style="margin-bottom:24px;">
+{% for key, r in ratios.debt_management.items() %}
+<div class="ratio-card {{ 'good' if r.good else 'bad' }}">
+  <div class="ratio-label">{{ key.replace('_',' ').title() }}</div>
+  <span class="ratio-value">{{ '{:.3f}'.format(r.value) }}{% if key == 'tie' %}×{% endif %}</span>
+  <div class="ratio-formula">{{ r.formula }}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <span class="ratio-bench">Benchmark: {{ r.benchmark }}</span>
+    <span class="badge {{ 'badge-good' if r.good else 'badge-bad' }}">{{ 'Healthy' if r.good else 'Risky' }}</span>
+  </div>
+</div>
+{% else %}<div class="alert alert-info">Insufficient data</div>{% endfor %}
+</div>
+<div class="grid-2" style="margin-bottom:28px;">
+  <div class="chart-box"><h4>DEBT RATIOS</h4><canvas id="chartDM"></canvas></div>
+  <div class="card">
+    <div class="card-title">Solvency Overview</div>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:0.81rem;">
+      <div><strong style="color:var(--indigo);">Debt/Assets &lt; 0.5</strong><br><span style="color:var(--text3);">Less than half assets are debt-financed.</span></div>
+      <div><strong style="color:var(--indigo);">Debt/Equity &lt; 1.0</strong><br><span style="color:var(--text3);">More equity than debt — low leverage risk.</span></div>
+      <div><strong style="color:var(--indigo);">TIE &gt; 3.0</strong><br><span style="color:var(--text3);">Strong interest coverage capacity.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-head">Profitability Ratios</div>
+<div class="ratio-grid" style="margin-bottom:24px;">
+{% for key, r in ratios.profitability.items() %}
+<div class="ratio-card {{ 'good' if r.good else 'bad' }}">
+  <div class="ratio-label">{{ key.replace('_',' ').title() }}</div>
+  <span class="ratio-value">{{ '{:.2f}'.format(r.value) }}%</span>
+  <div class="ratio-formula">{{ r.formula }}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <span class="ratio-bench">Benchmark: {{ r.benchmark }}</span>
+    <span class="badge {{ 'badge-good' if r.good else 'badge-bad' }}">{{ 'Strong' if r.good else 'Below' }}</span>
+  </div>
+</div>
+{% else %}<div class="alert alert-info">Insufficient data</div>{% endfor %}
+</div>
+<div class="grid-2">
+  <div class="chart-box"><h4>PROFITABILITY (%)</h4><canvas id="chartPR"></canvas></div>
+  <div class="chart-box"><h4>PERFORMANCE RADAR</h4><canvas id="chartRadar"></canvas></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const R = {{ ratios | tojson }};
+const GOOD='rgba(52,211,153,0.65)',BAD='rgba(248,113,113,0.55)',GOOD_B='#34D399',BAD_B='#F87171';
+
+function mkBar(id,labels,vals,colors){
+  const c=document.getElementById(id); if(!c) return;
+  new Chart(c,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors.map(g=>g?GOOD:BAD),borderColor:colors.map(g=>g?GOOD_B:BAD_B),borderWidth:1,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#182035',titleColor:'#E2E8F4',bodyColor:'#94A3B8',padding:10,borderColor:'rgba(255,255,255,0.07)',borderWidth:1}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#475569'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#475569'}}}}});
+}
+mkBar('chartLiq',Object.keys(R.liquidity).map(k=>k.replace(/_/g,' ').toUpperCase()),Object.values(R.liquidity).map(r=>r.value),Object.values(R.liquidity).map(r=>r.good));
+mkBar('chartAM',Object.keys(R.asset_management).map(k=>k.replace(/_/g,' ').toUpperCase()),Object.values(R.asset_management).map(r=>r.value),Object.values(R.asset_management).map(r=>r.good));
+mkBar('chartDM',Object.keys(R.debt_management).map(k=>k.replace(/_/g,' ').toUpperCase()),Object.values(R.debt_management).map(r=>r.value),Object.values(R.debt_management).map(r=>r.good));
+mkBar('chartPR',Object.keys(R.profitability).map(k=>k.replace(/_/g,' ').toUpperCase()),Object.values(R.profitability).map(r=>r.value),Object.values(R.profitability).map(r=>r.good));
+
+const norm=(v,max)=>Math.min(v/max*10,10);
+makeRadarChart('chartRadar',['Current Ratio','Quick Ratio','Asset Turnover','Profit Margin','ROA','ROE'],[{label:'Score (0–10)',data:[
+  norm(R.liquidity?.current_ratio?.value||0,3),norm(R.liquidity?.quick_ratio?.value||0,2),
+  norm(R.asset_management?.total_assets_turnover?.value||0,3),norm(R.profitability?.profit_margin?.value||0,20),
+  norm(R.profitability?.roa?.value||0,15),norm(R.profitability?.roe?.value||0,30)
+],backgroundColor:'rgba(129,140,248,0.12)',borderColor:'#818CF8',pointBackgroundColor:'#818CF8',borderWidth:2,pointRadius:4}]);
+</script>
+{% endblock %}

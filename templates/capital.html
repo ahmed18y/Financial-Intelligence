@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Capital Metrics — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Capital Metrics</h2><p>NWC, capital structure, capital budgeting allocation</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+<div class="grid-3" style="margin-bottom:24px;">
+  <div class="capital-card">
+    <div class="cap-label">Net Working Capital</div>
+    <div class="cap-value" style="color:{% if cap.nwc>=0 %}var(--green){% else %}var(--red){% endif %};">{{ '{:,.0f}'.format(cap.nwc) }}</div>
+    <div class="cap-formula">Current Assets − Current Liabilities</div>
+    <div style="margin-top:10px;">
+      <span class="badge {% if cap.nwc>=0 %}badge-good{% else %}badge-bad{% endif %}">{% if cap.nwc>=0 %}Positive{% else %}Negative{% endif %} NWC</span>
+    </div>
+  </div>
+  <div class="capital-card">
+    <div class="cap-label">Capital Structure</div>
+    <div class="cap-value">{{ '{:,.0f}'.format(cap.capital_structure) }}</div>
+    <div class="cap-formula">Long-Term Debt + Total Equity</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;font-size:0.72rem;font-family:var(--mono);">
+      <span style="color:var(--amber);">Debt: {{ '{:.1f}'.format(cap.ltd_pct) }}%</span>
+      <span style="color:var(--text3);">|</span>
+      <span style="color:var(--indigo);">Equity: {{ '{:.1f}'.format(cap.eq_pct) }}%</span>
+    </div>
+  </div>
+  <div class="capital-card">
+    <div class="cap-label">Capital Budgeting (CapEx)</div>
+    <div class="cap-value">{{ '{:,.0f}'.format(cap.capital_budgeting) }}</div>
+    <div class="cap-formula">Net Fixed Assets (Long-Term Investments)</div>
+    {% if cap.ta > 0 %}
+    <div style="font-size:0.7rem;color:var(--text3);margin-top:8px;">{{ '{:.1f}'.format(cap.capital_budgeting/cap.ta*100) }}% of Total Assets</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:20px;">
+  <div class="chart-box">
+    <h4>CAPITAL STRUCTURE BREAKDOWN</h4>
+    <canvas id="chartCap" style="max-height:220px;"></canvas>
+  </div>
+  <div class="chart-box">
+    <h4>ASSET ALLOCATION</h4>
+    <canvas id="chartAssets" style="max-height:220px;"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Financial Structure Summary</div>
+  <div class="grid-4">
+    {% for label,val,color in [
+      ('Total Assets',cap.ta,'indigo'),('Current Assets',cap.tca,'cyan'),
+      ('Fixed Assets',cap.capital_budgeting,'amber'),('Current Liabilities',cap.tcl,'red'),
+      ('Long-Term Debt',cap.ltd,'amber'),('Total Equity',cap.equity,'green'),
+      ('Net Working Capital',cap.nwc,'cyan'),('Capital Structure',cap.capital_structure,'indigo')
+    ] %}
+    <div class="stat-card">
+      <div class="stat-icon {{ color }}">
+        {% if color=='indigo' %}🏛{% elif color=='cyan' %}💧{% elif color=='green' %}📈{% elif color=='red' %}⚠{% else %}💰{% endif %}
+      </div>
+      <div class="stat-info">
+        <strong>{{ '{:,.0f}'.format(val) }}</strong>
+        <span>{{ label }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const c = {{ cap | tojson }};
+makeDonutChart('chartCap',['Long-Term Debt','Total Equity'],[c.ltd,c.equity],['rgba(251,191,36,0.75)','rgba(129,140,248,0.75)']);
+const other=Math.max(c.ta-c.tca-c.capital_budgeting,0);
+makeDonutChart('chartAssets',['Current Assets','Fixed Assets','Other'],[c.tca,c.capital_budgeting,other],['rgba(34,211,238,0.7)','rgba(52,211,153,0.7)','rgba(71,85,105,0.5)']);
+</script>
+{% endblock %}
