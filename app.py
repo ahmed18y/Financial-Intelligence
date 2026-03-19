@@ -935,14 +935,13 @@ def api_compare():
         'bs_b':  load_data('balance_sheet_b'),
     })
 
-try:
-    init_runtime()
-except Exception:
-    app.logger.exception('Startup initialization failed')
-    raise
-
 # ─────────────────────────────────────────────
 if __name__ == '__main__':
+    try:
+        init_runtime()
+    except Exception:
+        app.logger.exception('Startup initialization failed')
+        raise
     port = int(os.environ.get('PORT', 5000))
     app.logger.info('Starting Flask dev server on port %s', port)
     app.run(debug=True, host='0.0.0.0', port=port)
