@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import os
 import json
-import sqlite3
 import uuid
 import requests as http_requests
 import logging
@@ -15,8 +14,7 @@ import time
 import hashlib
 
 app = Flask(__name__)
-app.secret_key = 'fin_intel_secret_2024_x9k2m'
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.secret_key = os.environ.get('SECRET_KEY', 'fin_intel_secret_2024_x9k2m')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
 
@@ -27,67 +25,68 @@ logging.basicConfig(
 app.logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
 
 # ─────────────────────────────────────────────
-# DATABASE
+# IN-MEMORY USER STORE (replaces SQLite for Vercel)
 # ─────────────────────────────────────────────
-def init_db():
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE NOT NULL,
-                  password TEXT NOT NULL,
-                  role TEXT NOT NULL DEFAULT 'user')''')
-    for uname, pwd, role in [('admin', 'admin123', 'admin'), ('analyst', 'analyst123', 'user')]:
-        try:
-            c.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)",
-                      (uname, generate_password_hash(pwd), role))
-        except sqlite3.IntegrityError:
-            pass
-    conn.commit()
-    conn.close()
+_USERS = {
+    'admin': {
+        'id': 1,
+        'username': 'admin',
+        'password': generate_password_hash('admin123'),
+        'role': 'admin'
+    },
+    'analyst': {
+        'id': 2,
+        'username': 'analyst',
+        'password': generate_password_hash('analyst123'),
+        'role': 'user'
+    }
+}
 
 def init_runtime():
-    os.makedirs('uploads', exist_ok=True)
-    os.makedirs('sessions', exist_ok=True)
-    init_db()
-    app.logger.info('Runtime initialized successfully')
+    app.logger.info('Runtime initialized (in-memory mode for Vercel)')
 
 def get_user(username):
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username=?", (username,))
-    u = c.fetchone()
-    conn.close()
-    return u
+    u = _USERS.get(username)
+    if u:
+        return (u['id'], u['username'], u['password'], u['role'])
+    return None
 
 # ─────────────────────────────────────────────
-# SESSION STORAGE
+# IN-MEMORY SESSION DATA STORAGE (replaces filesystem for Vercel)
 # ─────────────────────────────────────────────
+# Global in-memory store: { sid: { key: data_dict, ... } }
+_session_store = {}
+
 def _sid():
     if 'sid' not in session:
         session['sid'] = str(uuid.uuid4())
     return session['sid']
 
-def _session_data_key(key):
-    # Prefix keeps app-owned objects grouped inside cookie session.
-    return f"data_{key}"
-
 def save_data(key, data):
-    _sid()
-    session[_session_data_key(key)] = data
-    session.modified = True
+    sid = _sid()
+    if sid not in _session_store:
+        _session_store[sid] = {}
+    _session_store[sid][key] = data
 
 def load_data(key):
-    _sid()
-    return session.get(_session_data_key(key))
+    sid = session.get('sid')
+    if not sid:
+        return None
+    return _session_store.get(sid, {}).get(key, None)
 
 def has_data():
-    return (load_data('income_statement') is not None and
-            load_data('balance_sheet') is not None)
+    sid = session.get('sid')
+    if not sid:
+        return False
+    store = _session_store.get(sid, {})
+    return ('income_statement' in store and 'balance_sheet' in store)
 
 def has_data_b():
-    return (load_data('income_statement_b') is not None and
-            load_data('balance_sheet_b') is not None)
+    sid = session.get('sid')
+    if not sid:
+        return False
+    store = _session_store.get(sid, {})
+    return ('income_statement_b' in store and 'balance_sheet_b' in store)
 
 # ─────────────────────────────────────────────
 # AUTH
@@ -930,6 +929,9 @@ def api_compare():
         'bs_b':  load_data('balance_sheet_b'),
     })
 
+# ─────────────────────────────────────────────
+# Vercel needs this module-level `app` object
+# For local development, run: python app.py
 # ─────────────────────────────────────────────
 if __name__ == '__main__':
     try:
