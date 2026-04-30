@@ -31,13 +31,13 @@ _USERS = {
     'admin': {
         'id': 1,
         'username': 'admin',
-        'password': generate_password_hash('admin123'),
+        'password': 'admin123',
         'role': 'admin'
     },
     'analyst': {
         'id': 2,
         'username': 'analyst',
-        'password': generate_password_hash('analyst123'),
+        'password': 'analyst123',
         'role': 'user'
     }
 }
@@ -617,7 +617,7 @@ def login():
     if request.method == 'POST':
         data = request.get_json() or request.form
         user = get_user(data.get('username', ''))
-        if user and check_password_hash(user[2], data.get('password', '')):
+        if user and user[2] == data.get('password', ''):
             session.clear()
             session['user_id'] = user[0]
             session['username'] = user[1]

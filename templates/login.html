@@ -42,10 +42,18 @@ document.getElementById('login-form').addEventListener('submit',async e=>{
   const btn=e.target.querySelector('button[type=submit]');
   const err=document.getElementById('login-error');
   btn.disabled=true;btn.textContent='Signing in…';
-  const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});
-  const d=await res.json();
-  if(d.ok){window.location.href=d.redirect||'/dashboard';}
-  else{err.style.display='flex';err.textContent=d.msg||'Invalid credentials';btn.disabled=false;btn.textContent='Sign In';}
+  try {
+    const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});
+    if (!res.ok) throw new Error('Server ' + res.status);
+    const d=await res.json();
+    if(d.ok){window.location.href=d.redirect||'/dashboard';}
+    else{err.style.display='flex';err.textContent=d.msg||'Invalid credentials';btn.disabled=false;btn.textContent='Sign In';}
+  } catch(error) {
+    err.style.display='flex';
+    err.textContent='Error: ' + error.message;
+    btn.disabled=false;
+    btn.textContent='Sign In';
+  }
 });
 </script>
 </body>
