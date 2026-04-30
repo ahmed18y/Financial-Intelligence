@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Free Cash Flow — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Free Cash Flow</h2><p>Two independent methods — results should reconcile</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+<div style="margin-bottom:20px;">
+  {% if fcf.match %}
+  <div class="alert alert-success">✓ Both methods agree — FCF = {{ '{:,.2f}'.format(fcf.m1.fcf) }}</div>
+  {% else %}
+  <div class="alert alert-warn">⚠ Methods differ (M1: {{ '{:,.2f}'.format(fcf.m1.fcf) }} vs M2: {{ '{:,.2f}'.format(fcf.m2.fcf) }}) — check that Previous Year data is complete.</div>
+  {% endif %}
+  {% if fcf.m2.reconciled %}
+  <div class="alert alert-info" style="margin-top:10px;">
+    Method 2 had inconsistent source lines (raw value: {{ '{:,.2f}'.format(fcf.m2.raw_fcf) }}), so it was reconciled to accounting identity.
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2" style="margin-bottom:24px;">
+<div class="card">
+  <div class="card-title">Method 1 — Operating Approach</div>
+  <div class="fcf-method">
+    <div class="fcf-step">
+      <div class="fcf-step-num">1</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">Operating Cash Flow (OCF)</div>
+        <div class="fcf-step-formula">EBIT ({{ '{:,.0f}'.format(fcf.m1.ebit) }}) + Depreciation ({{ '{:,.0f}'.format(fcf.m1.depr) }}) − Taxes ({{ '{:,.0f}'.format(fcf.m1.taxes) }})</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m1.ocf) }}</div>
+    </div>
+    <div class="fcf-step">
+      <div class="fcf-step-num">2</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">Net Capital Spending (NCS)</div>
+        <div class="fcf-step-formula">NFA End ({{ '{:,.0f}'.format(fcf.m1.nfa_c) }}) − NFA Beg ({{ '{:,.0f}'.format(fcf.m1.nfa_p) }}) + Depr ({{ '{:,.0f}'.format(fcf.m1.depr) }})</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m1.ncs) }}</div>
+    </div>
+    <div class="fcf-step">
+      <div class="fcf-step-num">3</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">Change in NWC (ΔNWC)</div>
+        <div class="fcf-step-formula">NWC End ({{ '{:,.0f}'.format(fcf.m1.nwc_c) }}) − NWC Beg ({{ '{:,.0f}'.format(fcf.m1.nwc_p) }})</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m1.delta_nwc) }}</div>
+    </div>
+    <div class="fcf-step result">
+      <div class="fcf-step-num" style="background:var(--indigo-d);border-color:var(--indigo);color:var(--indigo);">FCF</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">Free Cash Flow — Method 1</div>
+        <div class="fcf-step-formula">OCF − NCS − ΔNWC</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m1.fcf) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Method 2 — Cash Distribution</div>
+  <div class="fcf-method">
+    <div class="fcf-step">
+      <div class="fcf-step-num">1</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">CF to Creditors</div>
+        <div class="fcf-step-formula">Interest Paid ({{ '{:,.0f}'.format(fcf.m2.interest) }}) − Net New Borrowing ({{ '{:,.0f}'.format(fcf.m2.net_new_borrow) }})</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m2.cf_cred) }}</div>
+    </div>
+    <div class="fcf-step">
+      <div class="fcf-step-num">2</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">CF to Stockholders</div>
+        <div class="fcf-step-formula">Dividends ({{ '{:,.0f}'.format(fcf.m2.divs) }}) − Net New Equity ({{ '{:,.0f}'.format(fcf.m2.net_new_eq) }})</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m2.cf_stock) }}</div>
+    </div>
+    <div class="fcf-step result">
+      <div class="fcf-step-num" style="background:var(--indigo-d);border-color:var(--indigo);color:var(--indigo);">FCF</div>
+      <div class="fcf-step-body">
+        <div class="fcf-step-label">Free Cash Flow — Method 2</div>
+        <div class="fcf-step-formula">CF to Creditors + CF to Stockholders</div>
+      </div>
+      <div class="fcf-step-val">{{ '{:,.2f}'.format(fcf.m2.fcf) }}</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="chart-box" style="margin-bottom:20px;">
+  <h4>FCF COMPONENT BREAKDOWN</h4>
+  <canvas id="chartFCF" style="max-height:240px;"></canvas>
+</div>
+
+<div class="card">
+  <div class="card-title">Five Uses of Free Cash Flow</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+    {% for use in ['Pay interest to debtholders','Repay principal to debtholders','Pay dividends to shareholders','Repurchase stock from shareholders','Invest in short-term securities'] %}
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--brd);font-size:0.77rem;color:var(--text2);">
+      <span style="color:var(--indigo);font-family:var(--mono);font-size:0.68rem;flex-shrink:0;">0{{ loop.index }}</span>
+      {{ use }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fcf = {{ fcf | tojson }};
+makeBarChart('chartFCF',
+  ['OCF','NCS','ΔNWC','FCF M1','CF Creditors','CF Stockholders','FCF M2'],
+  [{
+    data:[fcf.m1.ocf, fcf.m1.ncs, fcf.m1.delta_nwc, fcf.m1.fcf, fcf.m2.cf_cred, fcf.m2.cf_stock, fcf.m2.fcf],
+    backgroundColor:['rgba(52,211,153,0.65)','rgba(248,113,113,0.55)','rgba(251,191,36,0.55)','rgba(129,140,248,0.75)','rgba(34,211,238,0.55)','rgba(34,211,238,0.45)','rgba(129,140,248,0.65)'],
+    borderColor:['#34D399','#F87171','#FBBF24','#818CF8','#22D3EE','#22D3EE','#818CF8'],
+    borderWidth:1, borderRadius:5
+  }]
+);
+</script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}AI Chat — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>AI Financial Chat</h2><p>Ask anything about {{ company }}'s financials — Gemini answers using your data</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+<div class="card" style="padding:0;display:flex;flex-direction:column;height:calc(100vh - 220px);">
+  <div style="padding:14px 20px;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-family:var(--mono);font-size:0.78rem;color:var(--indigo);">{{ company }} · Gemini Financial AI</div>
+    <button onclick="clearChat()" class="btn btn-ghost btn-sm">Clear</button>
+  </div>
+
+  <div id="chat-messages" class="chat-messages">
+    <div class="chat-msg assistant">
+      <strong>Hello! I'm your Gemini Financial AI for {{ company }}.</strong><br><br>
+      I have full access to the uploaded financial data. Try asking:<br><br>
+      • "What is the current ratio and what does it mean?"<br>
+      • "Analyze the profitability — is the company performing well?"<br>
+      • "Explain the DuPont decomposition for this company."<br>
+      • "What are the main financial risks?"<br>
+      • "Predict next year's performance based on trends."
+    </div>
+    {% for h in history %}
+    <div class="chat-msg {{ h.role }}">{{ h.content | safe }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="chat-input-row">
+    <textarea id="chat-input" class="chat-input" placeholder="Ask about ratios, trends, risks, projections..."></textarea>
+    <button onclick="sendChat()" class="btn btn-indigo" style="height:42px;padding:0 16px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function clearChat(){
+  document.getElementById('chat-messages').innerHTML='<div class="chat-msg assistant">Chat cleared. How can I help you analyze {{ company }}?</div>';
+  fetch('/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({msg:'__clear__'})});
+}
+const msgs=document.getElementById('chat-messages');
+if(msgs) msgs.scrollTop=msgs.scrollHeight;
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}AI Analysis — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>AI Deep Analysis</h2><p>Powered by Google Gemini — free tier, 1,500 req/day</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+  <button id="ai-btn" onclick="startAIStream()" class="btn btn-indigo">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Generate Deep Analysis
+  </button>
+  <div id="ai-spin" style="display:none;align-items:center;gap:10px;">
+    <div class="spinner"></div>
+    <span style="font-size:0.8rem;color:var(--text3);">Gemini is analyzing {{ company }}...</span>
+  </div>
+</div>
+
+<div class="alert alert-info" style="margin-bottom:20px;font-size:0.78rem;">
+  Requires a free Gemini API key — get yours at
+  <a href="https://aistudio.google.com" target="_blank" style="color:var(--cyan);font-weight:500;">aistudio.google.com</a>
+  then click <strong>Set API Key</strong> in the sidebar.
+</div>
+
+<div class="card" style="min-height:320px;">
+  <div class="card-title">Analysis Report — {{ company }}</div>
+  <div id="ai-output" class="ai-output">
+    <span style="color:var(--text3);">Click "Generate Deep Analysis" to start the report...</span>
+  </div>
+</div>
+{% endblock %}

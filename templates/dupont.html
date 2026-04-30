@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}DuPont Analysis — {{ company }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>DuPont Structure</h2><p>ROE decomposition: Profitability × Efficiency × Leverage</p></div>
+  <div class="company-pill">{{ company }}</div>
+</div>
+
+{% if dp.roe %}
+<!-- KPIs -->
+<div class="kpi-grid" style="margin-bottom:24px;">
+  <div class="kpi-tile indigo">
+    <div class="kpi-label">ROE</div>
+    <div class="kpi-value">{{ '{:.2f}'.format(dp.roe) }}%</div>
+    <div class="kpi-sub">Return on Equity</div>
+  </div>
+  <div class="kpi-tile cyan">
+    <div class="kpi-label">Profit Margin</div>
+    <div class="kpi-value">{{ '{:.2f}'.format(dp.profit_margin) }}%</div>
+    <div class="kpi-sub">Net Income ÷ Sales</div>
+  </div>
+  <div class="kpi-tile green">
+    <div class="kpi-label">Asset Turnover</div>
+    <div class="kpi-value">{{ '{:.4f}'.format(dp.total_assets_turnover) }}×</div>
+    <div class="kpi-sub">Sales ÷ Total Assets</div>
+  </div>
+  <div class="kpi-tile amber">
+    <div class="kpi-label">Equity Multiplier</div>
+    <div class="kpi-value">{{ '{:.4f}'.format(dp.equity_multiplier) }}×</div>
+    <div class="kpi-sub">Total Assets ÷ Equity</div>
+  </div>
+</div>
+
+<!-- DuPont Tree -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-title">DuPont Identity — Visual Tree</div>
+  <div class="dupont-tree">
+    <!-- Root: ROE -->
+    <div class="dt-level">
+      <div class="dt-node root">
+        <div class="dt-node-label">ROE</div>
+        <div class="dt-node-val">{{ '{:.2f}'.format(dp.roe) }}%</div>
+        <div class="dt-node-sub">Return on Equity</div>
+      </div>
+    </div>
+    <div class="dt-connector"><div class="dt-connector-line"></div></div>
+    <!-- Formula row -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
+      <div class="dt-node mid" style="min-width:140px;">
+        <div class="dt-node-label">Profit Margin</div>
+        <div class="dt-node-val" style="color:var(--cyan);">{{ '{:.2f}'.format(dp.profit_margin) }}%</div>
+        <div class="dt-node-sub">NI ÷ Sales</div>
+      </div>
+      <div class="dt-operator">×</div>
+      <div class="dt-node mid" style="min-width:140px;">
+        <div class="dt-node-label">Asset Turnover</div>
+        <div class="dt-node-val" style="color:var(--cyan);">{{ '{:.4f}'.format(dp.total_assets_turnover) }}×</div>
+        <div class="dt-node-sub">Sales ÷ Assets</div>
+      </div>
+      <div class="dt-operator">×</div>
+      <div class="dt-node mid" style="min-width:140px;">
+        <div class="dt-node-label">Equity Multiplier</div>
+        <div class="dt-node-val" style="color:var(--cyan);">{{ '{:.4f}'.format(dp.equity_multiplier) }}×</div>
+        <div class="dt-node-sub">Assets ÷ Equity</div>
+      </div>
+    </div>
+    <!-- Connectors -->
+    <div style="display:flex;justify-content:center;gap:120px;margin:0;">
+      <div class="dt-connector-line"></div>
+      <div class="dt-connector-line"></div>
+      <div class="dt-connector-line"></div>
+    </div>
+    <!-- Leaf nodes -->
+    <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:0;">
+      <!-- PM leaves -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Net Income</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.net_income) }}</div>
+        </div>
+        <div class="dt-operator" style="font-size:0.6rem;">÷</div>
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Sales</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.sales) }}</div>
+        </div>
+      </div>
+      <!-- TAT leaves -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Sales</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.sales) }}</div>
+        </div>
+        <div class="dt-operator" style="font-size:0.6rem;">÷</div>
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Total Assets</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.total_assets) }}</div>
+        </div>
+      </div>
+      <!-- EM leaves -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Total Assets</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.total_assets) }}</div>
+        </div>
+        <div class="dt-operator" style="font-size:0.6rem;">÷</div>
+        <div class="dt-node leaf">
+          <div class="dt-node-label">Total Equity</div>
+          <div class="dt-node-val">{{ '{:,.0f}'.format(dp.equity) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Verification -->
+<div class="card" style="margin-bottom:20px;background:var(--indigo-d);border-color:rgba(129,140,248,0.25);">
+  <div class="card-title">Formula Verification</div>
+  <div style="font-family:var(--mono);font-size:0.85rem;color:var(--text2);line-height:2;">
+    ROE = {{ '{:.4f}'.format(dp.profit_margin/100) }} × {{ '{:.4f}'.format(dp.total_assets_turnover) }} × {{ '{:.4f}'.format(dp.equity_multiplier) }}
+    = <strong style="color:var(--indigo);font-size:1rem;">{{ '{:.4f}'.format(dp.roe/100) }}</strong>
+    = <strong style="color:var(--indigo);font-size:1rem;">{{ '{:.2f}'.format(dp.roe) }}%</strong>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-box">
+  <h4>DUPONT FACTOR CONTRIBUTION</h4>
+  <canvas id="chartDuPont" style="max-height:240px;"></canvas>
+</div>
+
+{% else %}
+<div class="alert alert-warn">Insufficient data to build DuPont structure. Upload both Income Statement and Balance Sheet.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dp = {{ dp | tojson }};
+if(dp.roe) {
+  makeBarChart('chartDuPont',
+    ['Profit Margin (%)', 'Asset Turnover (×)', 'Equity Multiplier (×)', 'ROE (%)'],
+    [{
+      data:[dp.profit_margin, dp.total_assets_turnover, dp.equity_multiplier, dp.roe],
+      backgroundColor:['rgba(34,211,238,0.65)','rgba(52,211,153,0.65)','rgba(251,191,36,0.65)','rgba(129,140,248,0.75)'],
+      borderColor:['#22D3EE','#34D399','#FBBF24','#818CF8'],
+      borderWidth:1,borderRadius:6
+    }]
+  );
+}
+</script>
+{% endblock %}

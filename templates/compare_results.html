@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}Comparison Results{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h2>Comparison Results</h2><p>Side-by-side financial analysis</p></div>
+</div>
+
+<div class="compare-header" style="margin-bottom:20px;">
+  <div class="card" style="text-align:center;border-color:rgba(129,140,248,0.3);">
+    <div class="form-label">Company A</div>
+    <div style="font-family:var(--serif);font-size:1.05rem;color:var(--indigo);margin-top:4px;">{{ company_a }}</div>
+  </div>
+  <div class="vs-badge">VS</div>
+  <div class="card" style="text-align:center;border-color:rgba(34,211,238,0.3);">
+    <div class="form-label">Company B</div>
+    <div style="font-family:var(--serif);font-size:1.05rem;color:var(--cyan);margin-top:4px;">{{ company_b }}</div>
+  </div>
+</div>
+
+<div class="tabs" id="cmp-tabs">
+  <button class="tab active" onclick="cTab(0,'tab-ratios')">Ratio Analysis</button>
+  <button class="tab" onclick="cTab(1,'tab-is')">Income Statement</button>
+  <button class="tab" onclick="cTab(2,'tab-bs')">Balance Sheet</button>
+  <button class="tab" onclick="cTab(3,'tab-charts')">Charts</button>
+</div>
+
+<!-- RATIOS -->
+<div id="tab-ratios">
+{% for cat_name, cat_key in [('Liquidity','liquidity'),('Asset Management','asset_management'),('Debt Management','debt_management'),('Profitability','profitability')] %}
+<div class="section-head">{{ cat_name }}</div>
+<div class="card" style="margin-bottom:14px;padding:0;">
+  <div class="fin-table-wrap" style="border:none;">
+  <table class="compare-table">
+    <thead><tr>
+      <th style="text-align:left;">Ratio</th>
+      <th style="color:var(--indigo);">{{ company_a }}</th>
+      <th style="color:var(--cyan);">{{ company_b }}</th>
+      <th>Winner</th>
+      <th>Formula</th>
+    </tr></thead>
+    <tbody>
+    {% set cat_a = ra[cat_key] %}
+    {% set cat_b = rb[cat_key] %}
+    {% for key in cat_a.keys() %}
+      {% set va = cat_a[key] %}
+      {% set vb = cat_b.get(key) %}
+      {% if vb %}
+        {% set a_better = va.value >= vb.value %}
+      <tr>
+        <td>{{ key.replace('_',' ').title() }}</td>
+        <td class="{{ 'better' if a_better else 'worse' }}">{{ '{:.4f}'.format(va.value) }}</td>
+        <td class="{{ 'worse' if a_better else 'better' }}">{{ '{:.4f}'.format(vb.value) }}</td>
+        <td style="font-size:0.75rem;">
+          {% if a_better %}<span style="color:var(--indigo);">{{ company_a }}</span>
+          {% else %}<span style="color:var(--cyan);">{{ company_b }}</span>{% endif %}
+        </td>
+        <td style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);">{{ va.formula }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- IS -->
+<div id="tab-is" style="display:none;">
+<div class="card" style="margin-bottom:16px;">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <span style="font-size:0.78rem;color:var(--text3);align-self:center;">Select items:</span>
+    <button class="btn btn-outline btn-sm" onclick="togAll('is',true)">Select All</button>
+    <button class="btn btn-outline btn-sm" onclick="togAll('is',false)">Deselect All</button>
+  </div>
+  <div id="is-sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+  <div class="fin-table-wrap">
+  <table class="compare-table" id="is-tbl">
+    <thead><tr>
+      <th style="text-align:left;">Item</th>
+      <th style="color:var(--indigo);">{{ company_a }} Current</th>
+      <th style="color:var(--indigo);opacity:0.6;">{{ company_a }} Prior</th>
+      <th style="color:var(--cyan);">{{ company_b }} Current</th>
+      <th style="color:var(--cyan);opacity:0.6;">{{ company_b }} Prior</th>
+      <th>Δ A vs B</th>
+    </tr></thead>
+    <tbody id="is-body"></tbody>
+  </table>
+  </div>
+</div>
+</div>
+
+<!-- BS -->
+<div id="tab-bs" style="display:none;">
+<div class="card">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <span style="font-size:0.78rem;color:var(--text3);align-self:center;">Select items:</span>
+    <button class="btn btn-outline btn-sm" onclick="togAll('bs',true)">Select All</button>
+    <button class="btn btn-outline btn-sm" onclick="togAll('bs',false)">Deselect All</button>
+  </div>
+  <div id="bs-sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+  <div class="fin-table-wrap">
+  <table class="compare-table" id="bs-tbl">
+    <thead><tr>
+      <th style="text-align:left;">Item</th>
+      <th style="color:var(--indigo);">{{ company_a }} Current</th>
+      <th style="color:var(--indigo);opacity:0.6;">{{ company_a }} Prior</th>
+      <th style="color:var(--cyan);">{{ company_b }} Current</th>
+      <th style="color:var(--cyan);opacity:0.6;">{{ company_b }} Prior</th>
+      <th>Δ A vs B</th>
+    </tr></thead>
+    <tbody id="bs-body"></tbody>
+  </table>
+  </div>
+</div>
+</div>
+
+<!-- CHARTS -->
+<div id="tab-charts" style="display:none;">
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="chart-box"><h4>LIQUIDITY</h4><canvas id="cmpLiq"></canvas></div>
+    <div class="chart-box"><h4>PROFITABILITY (%)</h4><canvas id="cmpProf"></canvas></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="chart-box"><h4>ASSET MANAGEMENT</h4><canvas id="cmpAM"></canvas></div>
+    <div class="chart-box"><h4>DEBT MANAGEMENT</h4><canvas id="cmpDM"></canvas></div>
+  </div>
+  <div class="chart-box"><h4>REVENUE OVERVIEW</h4><canvas id="cmpIS" style="max-height:260px;"></canvas></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const RA={{ ra|tojson }},RB={{ rb|tojson }};
+const ISA={{ ist_a|tojson }},ISB={{ ist_b|tojson }};
+const BSA={{ bs_a|tojson }},BSB={{ bs_b|tojson }};
+const NA="{{ company_a }}",NB="{{ company_b }}";
+
+function cTab(idx,id){
+  document.querySelectorAll('#cmp-tabs .tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  ['tab-ratios','tab-is','tab-bs','tab-charts'].forEach(t=>{
+    const el=document.getElementById(t);if(el)el.style.display=t===id?'block':'none';
+  });
+  if(id==='tab-charts') buildCharts();
+  if(id==='tab-is') buildTable('is');
+  if(id==='tab-bs') buildTable('bs');
+}
+
+function buildTable(type){
+  const DA=type==='is'?ISA:BSA, DB=type==='is'?ISB:BSB;
+  const selEl=document.getElementById(type+'-sel');
+  const body=document.getElementById(type+'-body');
+  const keys=[...new Set([...Object.keys(DA),...Object.keys(DB)])];
+  selEl.innerHTML=keys.map(k=>`
+    <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.72rem;
+      padding:3px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:20px;">
+      <input type="checkbox" class="rt-${type}" data-key="${k}" checked style="accent-color:var(--indigo);">
+      ${(DA[k]||DB[k])?.label||k.replace(/_/g,' ')}
+    </label>`).join('');
+  function render(){
+    const checked=[...document.querySelectorAll(`.rt-${type}:checked`)].map(c=>c.dataset.key);
+    const fmt=v=>typeof v==='number'?v.toLocaleString('en-US',{minimumFractionDigits:2}):'N/A';
+    body.innerHTML=checked.map(k=>{
+      const a=DA[k],b=DB[k];
+      const ac=a?.current||0,ap=a?.previous||0,bc=b?.current||0,bp=b?.previous||0;
+      const diff=ac-bc;
+      const dc=diff>0?'var(--green)':diff<0?'var(--red)':'var(--text3)';
+      const isTotal = (k.includes('total') || k.includes('fixed_assets'));
+      return `<tr class="${isTotal ? 'total-row' : ''}">
+        <td>${(a||b)?.label||k.replace(/_/g,' ')}</td>
+        <td>${fmt(ac)}</td><td style="opacity:0.6;">${fmt(ap)}</td>
+        <td>${fmt(bc)}</td><td style="opacity:0.6;">${fmt(bp)}</td>
+        <td style="color:${dc};">${diff>=0?'+':''}${fmt(diff)}</td>
+      </tr>`;
+    }).join('');
+  }
+  render();
+  document.querySelectorAll(`.rt-${type}`).forEach(cb=>cb.addEventListener('change',render));
+}
+
+function togAll(type,on){
+  document.querySelectorAll(`.rt-${type}`).forEach(cb=>{cb.checked=on;cb.dispatchEvent(new Event('change'));});
+}
+
+let chartsBuilt=false;
+function buildCharts(){
+  if(chartsBuilt)return;chartsBuilt=true;
+  const aC='rgba(129,140,248,0.65)',bC='rgba(34,211,238,0.65)',aBrd='#818CF8',bBrd='#22D3EE';
+  function dual(id,labels,aData,bData){
+    const ctx=document.getElementById(id);if(!ctx)return;
+    new Chart(ctx,{type:'bar',data:{labels,datasets:[
+      {label:NA,data:aData,backgroundColor:aC,borderColor:aBrd,borderWidth:1,borderRadius:4},
+      {label:NB,data:bData,backgroundColor:bC,borderColor:bBrd,borderWidth:1,borderRadius:4}
+    ]},options:{responsive:true,
+      plugins:{legend:{labels:{color:'#64748b',boxWidth:10,padding:12}},
+               tooltip:{backgroundColor:'#182035',titleColor:'#E2E8F4',bodyColor:'#94A3B8',padding:9,borderColor:'rgba(255,255,255,0.07)',borderWidth:1}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.035)'},ticks:{color:'#475569'}},
+              y:{grid:{color:'rgba(255,255,255,0.035)'},ticks:{color:'#475569'}}}}});
+  }
+  const lk=Object.keys(RA.liquidity||{}).filter(k=>RB.liquidity?.[k]);
+  dual('cmpLiq',lk.map(k=>k.replace(/_/g,' ').toUpperCase()),lk.map(k=>RA.liquidity[k].value),lk.map(k=>RB.liquidity[k].value));
+  const pk=Object.keys(RA.profitability||{}).filter(k=>RB.profitability?.[k]);
+  dual('cmpProf',pk.map(k=>k.replace(/_/g,' ').toUpperCase()),pk.map(k=>RA.profitability[k].value),pk.map(k=>RB.profitability[k].value));
+  const ak=Object.keys(RA.asset_management||{}).filter(k=>RB.asset_management?.[k]);
+  dual('cmpAM',ak.map(k=>k.replace(/_/g,' ').toUpperCase()),ak.map(k=>RA.asset_management[k].value),ak.map(k=>RB.asset_management[k].value));
+  const dk=Object.keys(RA.debt_management||{}).filter(k=>RB.debt_management?.[k]);
+  dual('cmpDM',dk.map(k=>k.replace(/_/g,' ').toUpperCase()),dk.map(k=>RA.debt_management[k].value),dk.map(k=>RB.debt_management[k].value));
+  const ik=['net_sales','total_revenue','net_income','ebit'].filter(k=>ISA[k]||ISB[k]);
+  dual('cmpIS',ik.map(k=>(ISA[k]||ISB[k])?.label||k.replace(/_/g,' ')),ik.map(k=>ISA[k]?.current||0),ik.map(k=>ISB[k]?.current||0));
+}
+</script>
+{% endblock %}
